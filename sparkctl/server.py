@@ -78,21 +78,24 @@ def apply_language(messages: list, language: str) -> list:
 
 
 def image_prompt_parts(prompt: str, images: list[str]) -> list[dict]:
-    """把图片放进最后一轮用户内容，紧挨在问题文字前面。
+    """把每张图的占位符写进最后一轮用户内容，再附上图片数据。
 
-    编码结果已经以助手标记结尾。如果把图片接在这个标记后面，模型会先开口
-    回答，等于没看见图。
+    渲染器把消息收成一段字符串。图片若只作为单独部件传入，占位符会被补到
+    整段提示词最前面。前面已经有文字对话时，图就落在历史之前，模型继续
+    回答上一轮文字。占位符先写在最后一轮用户标记后面，数量和图片一致，
+    渲染器会保留这个位置。
     """
     marker = "<｜User｜>"
+    image_token = "<｜image｜>"
     idx = prompt.rfind(marker)
     if idx < 0:
         head, tail = "", prompt
     else:
         cut = idx + len(marker)
         head, tail = prompt[:cut], prompt[cut:]
-    parts = [{"type": "text", "text": head}]
+    text = head + (image_token * len(images)) + tail
+    parts = [{"type": "text", "text": text}]
     parts.extend({"type": "image_url", "image_url": {"url": url}} for url in images)
-    parts.append({"type": "text", "text": tail})
     return parts
 
 

@@ -17,7 +17,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
+
+try:
+    import pillow_heif
+
+    pillow_heif.register_heif_opener()
+except ImportError:
+    pillow_heif = None
 
 from encoding_dsv4 import encode_messages, parse_message_from_completion_text
 
@@ -99,19 +106,50 @@ def image_prompt_parts(prompt: str, images: list[str]) -> list[dict]:
     return parts
 
 
+HEIF_BRANDS = {b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"mif1", b"msf1"}
+
+
+def is_heif(data: bytes) -> bool:
+    """按文件头判断是不是 HEIC/HEIF。浏览器经常不给这类文件填 MIME。"""
+    return len(data) >= 12 and data[4:8] == b"ftyp" and data[8:12] in HEIF_BRANDS
+
+
+def heif_to_jpeg(data: bytes) -> bytes:
+    """把 HEIC 转成 JPEG。推理进程没有 HEIC 解码器，只收 JPEG 和 PNG。"""
+    if pillow_heif is None:
+        raise ValueError("无法解码 HEIC，控制台缺少 pillow-heif")
+    with Image.open(BytesIO(data)) as image:
+        turned = ImageOps.exif_transpose(image)
+        rgb = (turned or image).convert("RGB")
+        out = BytesIO()
+        rgb.save(out, format="JPEG", quality=92)
+        return out.getvalue()
+
+
 def normalize_images(urls: list[str]) -> list[str]:
-    """打不开的上传直接拒绝。JPG/PNG 保持原始字节，不再重新压缩。"""
+    """打不开的上传直接拒绝。JPG/PNG 保持原始字节，HEIC 先转成 JPEG。"""
     normalized = []
     for url in urls:
         if not isinstance(url, str) or not url.startswith("data:") or "," not in url:
             normalized.append(url)
             continue
-        _header, payload = url.split(",", 1)
+        header, payload = url.split(",", 1)
+        raw = base64.b64decode(payload)
+        header_l = header.lower()
+        if "heic" in header_l or "heif" in header_l or is_heif(raw):
+            try:
+                jpeg = heif_to_jpeg(raw)
+            except ValueError:
+                raise
+            except Exception as exc:
+                raise ValueError("无法识别这张 HEIC 图片") from exc
+            normalized.append("data:image/jpeg;base64," + base64.b64encode(jpeg).decode())
+            continue
         try:
-            with Image.open(BytesIO(base64.b64decode(payload))) as image:
+            with Image.open(BytesIO(raw)) as image:
                 image.load()
         except Exception as exc:
-            raise ValueError("无法识别这张图片，请改用 JPG 或 PNG") from exc
+            raise ValueError("无法识别这张图片，请改用 JPG、PNG 或 HEIC") from exc
         normalized.append(url)
     return normalized
 

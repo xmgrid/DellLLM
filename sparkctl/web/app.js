@@ -72,7 +72,11 @@ function render() {
   $("#chat-thread").innerHTML = messages.map((m) =>
     `<p class="msg ${m.role}"><strong>${m.role === "user" ? "你" : "模型"}</strong>\n${m.content}</p>`
   ).join("");
-  $("#chat-previews").innerHTML = images.map((u) => `<img class="preview" src="${u}" />`).join("");
+  $("#chat-previews").innerHTML = images.map((u) =>
+    u.startsWith("data:image/heic") || u.startsWith("data:image/heif")
+      ? `<span class="preview heic">HEIC</span>`
+      : `<img class="preview" src="${u}" alt="" />`
+  ).join("");
 }
 
 $("#chat-images").addEventListener("change", async (ev) => {
@@ -81,7 +85,7 @@ $("#chat-images").addEventListener("change", async (ev) => {
     try {
       images.push(await fileToJpeg(file));
     } catch (err) {
-      flash(err.message || "无法读取这张图片，请换成 JPG 或 PNG");
+      flash(err.message || "无法读取这张图片，请换成 JPG、PNG 或 HEIC");
     }
   }
   render();
@@ -91,29 +95,40 @@ function readFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("无法读取这张图片，请换成 JPG 或 PNG"));
+    reader.onerror = () => reject(new Error("无法读取这张图片，请换成 JPG、PNG 或 HEIC"));
     reader.readAsDataURL(file);
   });
 }
 
+function isHeic(file) {
+  const type = (file.type || "").toLowerCase();
+  const name = (file.name || "").toLowerCase();
+  return type === "image/heic" || type === "image/heif" || name.endsWith(".heic") || name.endsWith(".heif");
+}
+
 async function fileToJpeg(file) {
-  // JPG/PNG 原样上传。其他格式才画到画布上转成 JPEG，避免二次压缩猫图这类原图。
+  // JPG/PNG 原样上传。浏览器能画出来的格式在本地转成 JPEG。
+  // Chrome 解不开 HEIC，这种文件原样交给服务端再转。
   const type = (file.type || "").toLowerCase();
   if (type === "image/jpeg" || type === "image/jpg" || type === "image/png") {
     return readFile(file);
   }
-  let bitmap;
   try {
-    bitmap = await createImageBitmap(file);
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0);
+    if (bitmap.close) bitmap.close();
+    return canvas.toDataURL("image/jpeg", 0.92);
   } catch (err) {
-    throw new Error("无法读取这张图片，请换成 JPG 或 PNG");
+    if (!isHeic(file)) {
+      throw new Error("无法读取这张图片，请换成 JPG、PNG 或 HEIC");
+    }
+    const url = await readFile(file);
+    const comma = url.indexOf(",");
+    return "data:image/heic;base64," + (comma >= 0 ? url.slice(comma + 1) : url);
   }
-  const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  canvas.getContext("2d").drawImage(bitmap, 0, 0);
-  if (bitmap.close) bitmap.close();
-  return canvas.toDataURL("image/jpeg", 0.92);
 }
 
 function errorText(error) {

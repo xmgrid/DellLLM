@@ -1,0 +1,8 @@
+[Unit]
+# 只由 GID 修复脚本拉起，不要 enable 到开机。
+Description=Restart the DeepSeek cluster after RoCE GID recovery
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/linhaixiang/sparkctl/spark-recover.sh

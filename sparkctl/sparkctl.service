@@ -1,0 +1,15 @@
+[Unit]
+# 控制台，端口 9090。不负责加载权重，只代理对话和管理 systemctl。
+Description=GB10 cluster web console
+After=network-online.target
+
+[Service]
+Type=simple
+User=linhaixiang
+WorkingDirectory=/home/linhaixiang/sparkctl
+ExecStart=/usr/bin/python3 /home/linhaixiang/sparkctl/server.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

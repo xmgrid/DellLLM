@@ -1,0 +1,41 @@
+#!/bin/bash
+# NetworkManager 的 dispatcher。光纤重新 up 时，mlx5 会清空 GID 第 3 项，
+# 而 IPv4 地址还在，RoCEv2 不会自己写回去。这里只把对应的那一条连接
+# down/up 一次。头节点上如果真的补写了 GID，再触发 spark-recover。
+iface=${1:-}
+action=${2:-}
+[ "$action" = "up" ] || exit 0
+
+host=$(hostname -s)
+case "$host:$iface" in
+  promaxgb10-84ce:enp1s0f1np1) hca=rocep1s0f1; want=c80c; con=netplan-enp1s0f1np1; head=1 ;;
+  promaxgb10-84ce:enP2p1s0f1np1) hca=roceP2p1s0f1; want=c910; con=netplan-enP2p1s0f1np1; head=1 ;;
+  spark-8505:enp1s0f1np1) hca=rocep1s0f1; want=c80d; con=cx7-fabric-1; head=0 ;;
+  spark-8505:enP2p1s0f1np1) hca=roceP2p1s0f1; want=c911; con=cx7-fabric-2; head=0 ;;
+  *) exit 0 ;;
+esac
+
+sleep 1
+gid_file=/sys/class/infiniband/$hca/ports/1/gids/3
+gid=$(cat "$gid_file" 2>/dev/null || true)
+case "$gid" in
+  *"$want"*) exit 0 ;;
+esac
+
+exec 9>/run/lock/spark-roce-gid.lock
+flock 9
+gid=$(cat "$gid_file" 2>/dev/null || true)
+case "$gid" in
+  *"$want"*) exit 0 ;;
+esac
+
+logger -t spark-roce "restoring $con ($hca GID3 was ${gid:-empty})"
+nmcli con down "$con" || true
+nmcli con up "$con"
+sleep 1
+gid=$(cat "$gid_file" 2>/dev/null || true)
+logger -t spark-roce "$hca GID3 now ${gid:-empty}"
+
+if [ "$head" = 1 ]; then
+  systemctl start --no-block spark-recover.service || true
+fi

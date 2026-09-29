@@ -1,0 +1,37 @@
+/* 控制台配色和布局。对话页以外的面板用 display 切换，不卸载输入框。 */
+:root {
+  --bg: #14110d; --panel: #1c1812; --ink: #f3ead7; --muted: #9a8f7a;
+  --line: #3a3226; --copper: #d08a3a; --good: #7dae6a; --bad: #c45b42; --wait: #c9b15a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 15px/1.45 Georgia, "Iowan Old Style", serif; min-height: 100vh; }
+.top { display: flex; justify-content: space-between; align-items: end; padding: 28px 36px 12px; border-bottom: 1px solid var(--line); }
+.eyebrow { margin: 0; color: var(--copper); letter-spacing: 0.16em; text-transform: uppercase; font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
+h1 { margin: 4px 0 0; font-size: 34px; font-weight: 600; }
+.top-status { display: flex; gap: 12px; align-items: center; }
+.pill { font-family: ui-monospace, Menlo, monospace; font-size: 12px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; }
+.pill.ready { color: var(--good); border-color: var(--good); }
+.pill.starting { color: var(--wait); border-color: var(--wait); }
+.tabs { display: flex; gap: 4px; padding: 16px 36px 0; }
+button { font: 13px/1 ui-monospace, Menlo, monospace; background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; cursor: pointer; }
+.tabs button.on, button.primary { background: var(--copper); color: #1a130b; border-color: var(--copper); }
+button.danger { border-color: var(--bad); color: var(--bad); }
+.panel { display: none; padding: 20px 36px 48px; }
+.panel.on { display: block; }
+.toolbar, .chat-head, .chat-actions, .chat-composer { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hint, .meta { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card, table, .snippet, .log, .chat-thread { background: var(--panel); border: 1px solid var(--line); }
+.card { padding: 16px; }
+.card h2 { margin: 0 0 8px; font-size: 18px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.chat-thread { min-height: 280px; padding: 16px; margin: 12px 0; }
+.msg { margin: 0 0 12px; white-space: pre-wrap; }
+.msg.user { color: var(--copper); }
+.chat-composer textarea, input, select { background: #100e0b; color: var(--ink); border: 1px solid var(--line); padding: 8px; font: 14px/1.4 ui-monospace, Menlo, monospace; }
+.chat-composer textarea { flex: 1; min-width: 200px; }
+.snippet, .log { padding: 16px; overflow: auto; max-height: 60vh; font: 12px/1.45 ui-monospace, Menlo, monospace; }
+.flash { position: fixed; bottom: 16px; right: 16px; background: var(--panel); border: 1px solid var(--copper); padding: 10px 14px; }
+.preview { max-height: 72px; margin-right: 8px; }

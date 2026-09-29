@@ -1,0 +1,2 @@
+{# 按内容数组顺序输出文字，每张图换成一个 <｜image｜> 占位符。不要把图追加到已经编码完的提示词末尾。 #}
+{% for message in messages %}{% if message['content'] is string %}{{ message['content'] }}{% else %}{% for part in message['content'] %}{% if part['type'] == 'text' %}{{ part['text'] }}{% elif part['type'] == 'image_url' or part['type'] == 'image' %}<｜image｜>{% endif %}{% endfor %}{% endif %}{% endfor %}

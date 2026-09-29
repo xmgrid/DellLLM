@@ -1,0 +1,18 @@
+[Unit]
+# 工作节点推理。开机自启。和头节点重叠 stop/start 会让 NCCL 任务叠在一起。
+Description=DeepSeek-V4-Flash-0731 worker (native vLLM, TP=2)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=linhaixiang
+WorkingDirectory=/home/linhaixiang/sparkctl
+ExecStart=/home/linhaixiang/sparkctl/dspark-worker.sh
+Restart=on-failure
+RestartSec=15
+LimitMEMLOCK=infinity
+LimitSTACK=67108864
+
+[Install]
+WantedBy=multi-user.target

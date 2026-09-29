@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GB10 集群控制台</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">GB10 · RoCE · DeepSeek-V4</p>
+      <h1>flash-0731</h1>
+    </div>
+    <div class="top-status">
+      <span class="pill" id="serve-pill">stopped</span>
+      <button type="button" class="ghost" id="copy-url">复制 OpenAI</button>
+    </div>
+  </header>
+  <nav class="tabs">
+    <button type="button" data-tab="cluster" class="on">集群</button>
+    <button type="button" data-tab="models">模型</button>
+    <button type="button" data-tab="chat">对话</button>
+    <button type="button" data-tab="endpoints">接口</button>
+    <button type="button" data-tab="logs">日志</button>
+  </nav>
+  <main>
+    <section id="tab-cluster" class="panel on">
+      <div class="toolbar">
+        <button type="button" id="btn-start">启动推理</button>
+        <button type="button" id="btn-stop" class="danger">停止推理</button>
+        <p class="hint" id="mesh-hint">双机 200Gb RoCE，TP=2，DSpark 推测解码 5 token。</p>
+      </div>
+      <div class="cards" id="nodes"></div>
+    </section>
+    <section id="tab-models" class="panel">
+      <table>
+        <thead><tr><th>模型</th><th>方案</th><th>推测解码</th><th>多模态</th><th></th></tr></thead>
+        <tbody id="model-rows"></tbody>
+      </table>
+    </section>
+    <section id="tab-chat" class="panel">
+      <div class="chat-head">
+        <p class="hint" id="chat-meta">等待模型就绪</p>
+        <div class="chat-actions">
+          <label class="chat-lang">语言
+            <select id="chat-lang">
+              <option value="zh" selected>中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="auto">跟随输入</option>
+            </select>
+          </label>
+          <label class="chat-lang chat-check"><input id="chat-think" type="checkbox" />思考</label>
+          <label class="chat-lang">力度
+            <select id="chat-effort"><option>low</option><option>high</option><option>max</option></select>
+          </label>
+          <label class="chat-lang" title="可以填 1048576。这是提示词和回复加在一起的上限，服务端会自动给提示词留位置，回答结束就会停。">生成长度
+            <input id="chat-max-tokens" type="number" min="16" max="1048576" step="64" value="1048576" />
+          </label>
+          <button type="button" id="chat-clear">清空</button>
+        </div>
+      </div>
+      <div class="chat-thread" id="chat-thread"></div>
+      <div class="chat-previews" id="chat-previews"></div>
+      <form class="chat-composer" id="chat-form">
+        <label class="chat-attach">图片<input id="chat-images" type="file" accept="image/*" multiple /></label>
+        <textarea id="chat-input" rows="2" placeholder="输入消息，Enter 发送"></textarea>
+        <button type="submit" id="chat-send" class="primary">发送</button>
+      </form>
+    </section>
+    <section id="tab-endpoints" class="panel">
+      <pre class="snippet" id="snippet"></pre>
+    </section>
+    <section id="tab-logs" class="panel">
+      <div class="toolbar">
+        <button type="button" id="btn-log-head">头节点</button>
+        <button type="button" id="btn-log-worker">工作节点</button>
+      </div>
+      <pre class="log" id="log-box">暂无日志</pre>
+    </section>
+  </main>
+  <p class="flash" id="flash" hidden></p>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
